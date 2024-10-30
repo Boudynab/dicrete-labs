@@ -17,35 +17,47 @@ public class LogicalExpressionEvaluator implements LogicalExpressionSolver {
     private String infixToPostfix(String infix) {
         StringBuilder postfix = new StringBuilder();
         Stack<Character> operators = new Stack<>();
+        boolean lastWasOperator = false;
+
         for (int i = 0; i < infix.length(); i++) {
             char c = infix.charAt(i);
             if (Character.isWhitespace(c)) {
                 continue;
             }
+
             if (Character.isLetter(c)) {
                 postfix.append(c);
+                lastWasOperator = false;
             } else if (c == '(') {
                 operators.push(c);
+                lastWasOperator = false;
             } else if (c == ')') {
                 while (!operators.isEmpty() && operators.peek() != '(') {
                     postfix.append(operators.pop());
                 }
                 if (operators.isEmpty() || operators.pop() != '(') {
-                    return null; // mismatched ()
+                    return null; // mismatched parentheses
                 }
+                lastWasOperator = false;
             } else if (precedence.containsKey(c)) {
-                while (!operators.isEmpty() && precedence.get(operators.peek()) != null && precedence.get(c) <= precedence.get(operators.peek())) {
+                if (lastWasOperator && c != '~') { 
+                    return null; // Invalid expression
+                }
+                while (!operators.isEmpty() && precedence.get(operators.peek()) != null 
+                        && precedence.get(c) <= precedence.get(operators.peek())) {
                     postfix.append(operators.pop());
                 }
                 operators.push(c);
+                lastWasOperator = true;
             } else {
-                return null; //wrong char
+                return null; // invalid character
             }
         }
+
         while (!operators.isEmpty()) {
             char op = operators.pop();
             if (op == '(') {
-                return null; // mismatched ()
+                return null; // mismatched parentheses
             }
             postfix.append(op);
         }
@@ -54,10 +66,12 @@ public class LogicalExpressionEvaluator implements LogicalExpressionSolver {
     private boolean evaluatePostfix(String postfix) {
         Stack<Boolean> stack = new Stack<>();
         Map<Character, Boolean> variableValues = getVariableValues(postfix);
+        boolean lastWasOperator = false;
         for (char c : postfix.toCharArray()) {
             if (Character.isLetter(c)) {
                 stack.push(variableValues.get(c));
-            } else {
+                lastWasOperator = false;
+            } else if (precedence.containsKey(c)) { // Check if `c` is an operator
                 boolean result;
                 switch (c) {
                     case '~':
@@ -78,6 +92,9 @@ public class LogicalExpressionEvaluator implements LogicalExpressionSolver {
                         throw new IllegalArgumentException("Unexpected character: " + c);
                 }
                 stack.push(result);
+                lastWasOperator = true;
+            } else {
+                throw new IllegalArgumentException("Unexpected character: " + c);
             }
         }
         return stack.pop();

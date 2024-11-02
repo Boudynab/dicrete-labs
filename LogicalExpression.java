@@ -1,4 +1,5 @@
 public class LogicalExpression implements Expression {
+    
     private String representation;
     @Override
     public String getRepresentation() {

@@ -18,13 +18,11 @@ public class LogicalExpressionEvaluator implements LogicalExpressionSolver {
         StringBuilder postfix = new StringBuilder();
         Stack<Character> operators = new Stack<>();
         boolean lastWasOperator = false;
-
         for (int i = 0; i < infix.length(); i++) {
             char c = infix.charAt(i);
             if (Character.isWhitespace(c)) {
                 continue;
             }
-
             if (Character.isLetter(c)) {
                 postfix.append(c);
                 lastWasOperator = false;
@@ -39,9 +37,22 @@ public class LogicalExpressionEvaluator implements LogicalExpressionSolver {
                     return null; // mismatched parentheses
                 }
                 lastWasOperator = false;
+            } else if (c == '~') {
+                int negationCount = 0;
+                while (i < infix.length() && infix.charAt(i) == '~') {
+                    negationCount++;
+                    i++;
+                }
+                i--; 
+                if (negationCount % 2 != 0) {
+                    while (!operators.isEmpty() && precedence.get(operators.peek()) != null && precedence.get('~') < precedence.get(operators.peek())) {postfix.append(operators.pop());
+                    }
+                    operators.push('~');
+                }
+                lastWasOperator = true;
             } else if (precedence.containsKey(c)) {
-                if (lastWasOperator && c != '~') { 
-                    return null; // Invalid expression
+                if (lastWasOperator) {
+                    return null; 
                 }
                 while (!operators.isEmpty() && precedence.get(operators.peek()) != null 
                         && precedence.get(c) <= precedence.get(operators.peek())) {
@@ -53,16 +64,16 @@ public class LogicalExpressionEvaluator implements LogicalExpressionSolver {
                 return null; // invalid character
             }
         }
-
         while (!operators.isEmpty()) {
             char op = operators.pop();
-            if (op == '(') {
+            if (op == '(' || op == ')') {
                 return null; // mismatched parentheses
             }
             postfix.append(op);
         }
+    
         return postfix.toString();
-    }
+    }    
     private boolean evaluatePostfix(String postfix) {
         Stack<Boolean> stack = new Stack<>();
         Map<Character, Boolean> variableValues = getVariableValues(postfix);
